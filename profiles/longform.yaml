@@ -1,0 +1,24 @@
+id: longform
+duration:
+  min_seconds: 600
+  max_seconds: 7200
+planning:
+  primary_unit: sequence
+  allowed_hierarchy: [project, chapter, sequence, scene, beat, shot]
+  progressive_lock: required
+story:
+  chapter_map_required: true
+  sequence_cards_required: true
+  setup_payoff_ledger_required: true
+  recap_policy: intentional_only
+direction:
+  visual_bible_required: true
+  sound_bible_required: true
+  continuity_bible_required: true
+render:
+  unit: sequence
+  intermediate_masters: true
+qc:
+  local_passes: [scene, sequence, master]
+  independent_review_recommended: true
+  global_pacing_pass: true
