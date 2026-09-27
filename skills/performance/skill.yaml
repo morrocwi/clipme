@@ -1,0 +1,20 @@
+id: performance
+layer: creator
+scopes: [scene, beat]
+task_scope:
+  short-90s: scene
+  explainer: scene
+  longform: scene
+  film: scene
+requires: [director]
+after_if_active: [storyboard]
+consumes: [script, character_bible, director_plan]
+produces: [performance_plan, voice_direction]
+gates: [DIRECTION, CONTINUITY, AUDIO]
+activation:
+  default: skip
+  profiles:
+    film: optional
+  rules:
+    - status: required
+      when_any: [characters, dialogue, presenter, acting]
