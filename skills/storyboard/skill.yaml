@@ -1,0 +1,23 @@
+id: storyboard
+layer: creator
+scopes: [sequence, scene]
+task_scope:
+  short-90s: sequence
+  explainer: scene
+  longform: sequence
+  film: sequence
+requires: [director]
+after_if_active: [production-design]
+consumes: [director_plan, shot_plan, continuity_bible]
+produces: [storyboard, previs]
+gates: [DIRECTION, CONTINUITY]
+activation:
+  default: optional
+  profiles:
+    short-90s: optional
+    explainer: optional
+    longform: inline
+    film: required
+  rules:
+    - status: required
+      when_any: [complex_action, expensive_shots, complex_geography]
