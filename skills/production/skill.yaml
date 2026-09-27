@@ -1,0 +1,12 @@
+id: production
+layer: orchestration
+scopes: [project]
+task_scope:
+  default: project
+requires: []
+consumes: [project, profile, unit_graph, skill_registry]
+produces: [production_plan, task_dag]
+gates: []
+orchestration_only: true
+activation:
+  default: required
