@@ -1,0 +1,16 @@
+id: producer
+layer: creator
+scopes: [project]
+task_scope:
+  default: project
+requires: []
+consumes: [raw_idea, constraints]
+produces: [brief, risk_register, production_profile]
+gates: []
+activation:
+  default: optional
+  profiles:
+    short-90s: inline
+    explainer: inline
+    longform: required
+    film: required
