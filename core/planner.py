@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Any
+import hashlib
+import json
 
 from .graph import UnitGraph, Unit
 from .registry import SkillRegistry, SkillManifest
@@ -21,6 +23,7 @@ class Task:
     produces: tuple[str, ...]
     gates: tuple[str, ...]
     assurance: bool = False
+    context_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -40,7 +43,22 @@ class Task:
             produces=tuple(data.get("produces", [])),
             gates=tuple(data.get("gates", [])),
             assurance=bool(data.get("assurance", False)),
+            context_hash=data.get("context_hash", ""),
         )
+
+    def signature(self) -> str:
+        payload = {
+            "skill_id": self.skill_id,
+            "unit_id": self.unit_id,
+            "unit_kind": self.unit_kind,
+            "mode": self.mode,
+            "requires": list(self.requires),
+            "produces": list(self.produces),
+            "gates": list(self.gates),
+            "assurance": self.assurance,
+            "context_hash": self.context_hash,
+        }
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 class FeatureDetector:
@@ -107,6 +125,27 @@ class Planner:
         if scope == "project":
             return [u for u in graph.roots() if u.kind == "project"]
         return []
+
+    def _context_hash(self, graph: UnitGraph, unit: Unit) -> str:
+        if unit.kind == "project":
+            payload = {"id": unit.id, "kind": unit.kind}
+        elif unit.kind == "master":
+            payload = graph.to_dict()
+        else:
+            ids = {unit.id} | {d.id for d in graph.descendants(unit.id)}
+            payload = {
+                "units": sorted(
+                    [
+                        {
+                            "id": u.id, "kind": u.kind, "parent": u.parent,
+                            "children": list(u.children), "refs": u.refs
+                        }
+                        for u in graph.units.values() if u.id in ids
+                    ],
+                    key=lambda row: row["id"]
+                )
+            }
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     def build_tasks(self, project: dict[str, Any], graph: UnitGraph) -> list[Task]:
         profile = project["profile"]
@@ -187,6 +226,7 @@ class Planner:
                 produces=skill.produces,
                 gates=skill.gates,
                 assurance=skill.assurance,
+                context_hash=self._context_hash(graph, unit),
             ))
         return tasks
 
