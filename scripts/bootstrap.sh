@@ -114,6 +114,21 @@ else
     echo "-- could not wire ffprobe into $BIN_DIR"
 fi
 
+# 4b) optional free local providers (edge-tts, piper-tts, faster-whisper,
+# playwright) — best-effort / non-fatal: a provider failing to install must
+# never break bootstrap for core ffmpeg/ffprobe functionality.
+echo ""
+echo "-- installing optional local providers (requirements-providers.txt)"
+if pip install --quiet -r requirements-providers.txt; then
+    echo "-- optional providers installed"
+    if [ -x "$VENV_DIR/bin/playwright" ]; then
+        echo "-- installing playwright chromium browser (no sudo, ~/.cache/ms-playwright)"
+        "$VENV_DIR/bin/playwright" install chromium || echo "-- playwright chromium download failed (non-fatal)"
+    fi
+else
+    echo "-- optional providers install failed (non-fatal, core clipme still usable)"
+fi
+
 # 5) PATH export line, printed and written to scripts/env.sh
 PATH_LINE="export PATH=\"$BIN_DIR:\$PATH\""
 echo ""
