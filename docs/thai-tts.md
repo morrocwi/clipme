@@ -15,6 +15,15 @@ Both are **CC-BY-NC-4.0: non-commercial only.** Do not ship either through a
 paying clipme customer's output without the founder explicitly clearing that
 first — this is a licensing gate, not a technical one.
 
+**Commercial option**: `generate_voice:gemini_tts`
+(`core/providers_media.py::GeminiTTSAdapter`) is the one Thai TTS backend in
+this repo cleared for commercial output — Gemini API Terms allow commercial
+use of generated audio (paid tier recommended when "no training on my data"
+matters). Needs a `GEMINI_API_KEY` (paid usage, not free) and network access
+at synthesis time; VERIFIED 2026-09-27 producing intelligible Thai audio via
+the `Kore` voice. See `docs/providers.md`'s "Gemini TTS" section for auth,
+cost, and format details.
+
 VERIFIED (measured on this machine, 2026-09-27):
 - Piper Thai voice loaded and synthesized `"สวัสดีครับ นี่คือการทดสอบเสียงภาษาไทยของระบบคลิปมี"`
   to a 5.03s, 22050Hz mono WAV via the existing `PiperTTSAdapter` — no code
