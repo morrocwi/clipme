@@ -1,0 +1,37 @@
+id: film
+duration:
+  min_seconds: 3600
+  max_seconds: 14400
+planning:
+  primary_unit: sequence
+  allowed_hierarchy: [project, act, sequence, scene, beat, shot]
+  progressive_lock: strict
+story:
+  premise_lock: true
+  story_bible_required: true
+  act_map_required: true
+  sequence_cards_required: true
+  scene_cards_required: true
+  setup_payoff_ledger_required: true
+  character_arcs_required_when_applicable: true
+direction:
+  directors_vision_required: true
+  visual_bible_required: true
+  sound_bible_required: true
+  world_bible_required_when_applicable: true
+  character_bible_required_when_applicable: true
+  continuity_bible_required: true
+storyboard:
+  required_for_complex_action: true
+  previs_required_for_expensive_or_spatially_complex_sequences: true
+render:
+  unit: sequence
+  intermediate_masters: true
+  assemble_by_reel_or_act: true
+qc:
+  local_passes: [shot, scene, sequence, act, master]
+  independent_review_required_for_master: true
+  global_continuity_pass: true
+  global_sound_pass: true
+  global_color_pass: true
+  global_pacing_pass: true
