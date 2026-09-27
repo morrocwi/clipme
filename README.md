@@ -217,6 +217,11 @@ See `AGENTS.md` for the AI execution protocol.
 
 ## Quick start
 
+`ffmpeg`/`ffprobe` are external binaries `assemble`/`probe` shell out to — if
+they are not already on your PATH (no sudo needed), run `./scripts/bootstrap.sh`
+(or `make bootstrap`) once to set up a local `.venv` and wire both binaries
+into a repo-local `bin/`, then `source scripts/env.sh`.
+
 ```bash
 pip install -r requirements.txt
 
