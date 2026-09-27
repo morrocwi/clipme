@@ -1,0 +1,17 @@
+id: accessibility-delivery
+layer: delivery
+scopes: [master]
+task_scope:
+  default: master
+requires: [qc]
+consumes: [assembly_master, qc_report, transcript]
+produces: [delivery_master, captions, delivery_manifest]
+gates: [READABILITY, AUDIO, TECH]
+activation:
+  default: optional
+  profiles:
+    longform: inline
+    film: inline
+  rules:
+    - status: required
+      when_any: [captions, subtitles, accessibility, platform_delivery]
