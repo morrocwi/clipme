@@ -235,7 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("init", help="create a clipme project workspace")
     s.add_argument("directory")
     s.add_argument("--profile", default="short-90s",
-                   choices=["short-90s", "longform", "film"])
+                   choices=["short-90s", "explainer", "longform", "film"])
     s.add_argument("--title")
     s.add_argument("--id")
     s.add_argument("--language", default="th")
