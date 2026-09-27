@@ -1,0 +1,16 @@
+id: SEQ_001
+title: ""
+objective: ""
+viewer_question: ""
+entry_state: {}
+exit_state: {}
+setup_refs: []
+payoff_refs: []
+continuity_refs: []
+fact_refs: []
+scenes:
+  - SCENE_001
+transition_in: ""
+transition_out: ""
+target_seconds: 30
+status: draft
