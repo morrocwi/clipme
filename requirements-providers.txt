@@ -14,3 +14,12 @@ edge-tts>=6.1          # free MS Edge cloud TTS (needs internet)
 piper-tts>=1.2          # free offline neural TTS (needs a voice model download)
 faster-whisper>=1.0     # free offline STT (CPU int8 supported)
 playwright>=1.40        # free headless-browser rendering (chromium via `playwright install chromium`)
+
+# optional Thai offline TTS (heavy): facebook/mms-tts-tha via MMSTTSAdapter.
+# ~2GB combined install (torch CPU wheel is the bulk of it), measured
+# ~745MB peak RSS / ~18s wall time for a short sentence on this machine.
+# CC-BY-NC-4.0 (non-commercial) — see docs/thai-tts.md before shipping any
+# commercial clipme output through this backend.
+# transformers>=4.40
+# torch>=2.2 --index-url https://download.pytorch.org/whl/cpu
+# soundfile>=0.12
