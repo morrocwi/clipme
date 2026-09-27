@@ -1,0 +1,20 @@
+id: motion-vfx
+layer: creator
+scopes: [shot]
+task_scope:
+  default: shot
+requires: [director]
+after_if_active: [storyboard, cinematography, production-design, performance]
+consumes: [shot_plan, storyboard, asset_brief]
+produces: [rendered_shot, vfx_notes]
+gates: [VISUAL, READABILITY]
+activation:
+  default: optional
+  profiles:
+    short-90s: inline
+    explainer: required
+    longform: optional
+    film: optional
+  rules:
+    - status: required
+      when_any: [code_motion, animation, vfx, generated_video, infographic]
