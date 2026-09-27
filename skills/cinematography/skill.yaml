@@ -1,0 +1,23 @@
+id: cinematography
+layer: creator
+scopes: [shot, scene]
+task_scope:
+  short-90s: shot
+  explainer: shot
+  longform: scene
+  film: scene
+requires: [director]
+after_if_active: [storyboard, production-design]
+consumes: [director_plan, visual_bible, continuity_bible]
+produces: [camera_plan, lighting_plan]
+gates: [DIRECTION, CONTINUITY, VISUAL]
+activation:
+  default: optional
+  profiles:
+    short-90s: skip
+    explainer: optional
+    longform: inline
+    film: required
+  rules:
+    - status: required
+      when_any: [live_action, generated_video, cinematic]
