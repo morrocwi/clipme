@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipme.local/schemas/timeline.schema.json",
+  "title": "clipme timeline",
+  "type": "object",
+  "required": ["project_id","fps","events"],
+  "properties": {
+    "project_id":{"type":"string"},
+    "fps":{"type":"number","exclusiveMinimum":0},
+    "duration_seconds":{"type":"number","minimum":0},
+    "events":{
+      "type":"array",
+      "items":{
+        "type":"object",
+        "required":["id","track","start_seconds","end_seconds","ref"],
+        "properties":{
+          "id":{"type":"string"},
+          "track":{"type":"string"},
+          "start_seconds":{"type":"number","minimum":0},
+          "end_seconds":{"type":"number","exclusiveMinimum":0},
+          "ref":{"type":"string"},
+          "gain_db":{"type":"number"},
+          "opacity":{"type":"number","minimum":0,"maximum":1},
+          "notes":{"type":"string"}
+        },
+        "additionalProperties":true
+      }
+    }
+  },
+  "additionalProperties":true
+}
