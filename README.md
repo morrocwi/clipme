@@ -213,3 +213,50 @@ A project is done only when:
 7. the project can be reproduced from its manifests.
 
 See `AGENTS.md` for the AI execution protocol.
+
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+
+python clipme.py init work/my-video \
+  --profile short-90s \
+  --title "My Video" \
+  --language th \
+  --duration 60
+
+python clipme.py validate work/my-video
+```
+
+When rendered sequence masters exist:
+
+```bash
+python clipme.py assemble work/my-video
+python clipme.py probe work/my-video/masters/master.mp4
+python clipme.py gate work/my-video
+```
+
+For a one-prompt AI handoff, start from `prompts/ONE_SHOT.md`.
+
+## Expanded production disciplines
+
+The repository now includes skills for:
+
+- producer/development
+- research/fact
+- story/screenwriting
+- directing
+- storyboard/previs
+- cinematography
+- production design
+- performance direction
+- motion/animation/VFX
+- sound
+- editing
+- continuity
+- color/finishing
+- QC
+- accessibility/delivery
+
+The conceptual map is in `docs/production-curriculum.md`.
