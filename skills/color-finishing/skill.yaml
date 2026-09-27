@@ -1,0 +1,23 @@
+id: color-finishing
+layer: creator
+scopes: [sequence, master]
+task_scope:
+  short-90s: master
+  explainer: master
+  longform: master
+  film: master
+requires: [editor]
+after_if_active: [sound]
+consumes: [assembly_master, visual_bible]
+produces: [graded_master]
+gates: [VISUAL, CONTINUITY]
+activation:
+  default: optional
+  profiles:
+    short-90s: optional
+    explainer: optional
+    longform: inline
+    film: required
+  rules:
+    - status: inline
+      when_any: [live_action, generated_video, cinematic]
