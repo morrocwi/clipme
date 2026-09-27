@@ -261,3 +261,21 @@ An execution agent must report:
 - reproducibility manifest location
 
 Never report "done" if blocking QC items remain.
+
+
+## Machine-readable orchestration
+
+The prose in this file and each `SKILL.md` explains professional intent. Runtime orchestration is defined by:
+
+- `manifests/unit_graph.json` — project hierarchy
+- `skills/*/skill.yaml` — scope, hard dependencies, conditional ordering, outputs and activation
+- `project.yaml.features` — project-specific production needs
+- `project.yaml.skill_overrides` — explicit per-project activation overrides
+- `manifests/production_plan.json` — generated task DAG
+- `manifests/task_state.json` — persistent execution state
+
+Use `python clipme.py plan <project>` whenever the unit graph materially changes.
+
+Only `required` and `inline` skills are scheduled automatically. `optional` skills remain available without adding task overhead. A hard dependency whose required unit does not yet exist defers downstream tasks until a later re-plan.
+
+Creator skills generate; assurance skills verify. Do not collapse assurance into creator self-approval for master release.
