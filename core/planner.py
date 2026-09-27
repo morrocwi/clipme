@@ -120,6 +120,27 @@ class Planner:
                 for unit in self._units_for_scope(graph, scope):
                     provisional.append((skill, unit, mode))
 
+        # Progressive planning: if a hard dependency skill is active but cannot
+        # instantiate any task because its required units do not exist yet,
+        # defer downstream tasks until a later re-plan. This prevents a fresh
+        # project root from scheduling edit/QC before story creates sequences.
+        changed = True
+        while changed:
+            changed = False
+            instantiated_skills = {s.id for s, _, _ in provisional}
+            kept = []
+            for item in provisional:
+                skill, unit, mode = item
+                missing_hard = [
+                    dep for dep in skill.requires
+                    if activation.get(dep) in {"required", "inline"} and dep not in instantiated_skills
+                ]
+                if missing_hard:
+                    changed = True
+                    continue
+                kept.append(item)
+            provisional = kept
+
         task_keys = {(s.id, u.id): f"{s.id}@{u.id}" for s, u, _ in provisional}
         by_skill: dict[str, list[tuple[Unit, str]]] = {}
         for skill, unit, _ in provisional:
