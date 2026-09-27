@@ -1,0 +1,14 @@
+id: director
+layer: creator
+scopes: [project, sequence, scene]
+task_scope:
+  short-90s: sequence
+  explainer: scene
+  longform: sequence
+  film: sequence
+requires: [story]
+consumes: [story_bible, unit_graph, continuity_bible]
+produces: [director_plan, shot_plan]
+gates: [DIRECTION]
+activation:
+  default: required
