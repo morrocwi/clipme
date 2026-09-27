@@ -23,7 +23,9 @@ Design rules (matching `core/providers.py`'s discipline):
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
+import os
 import shutil
 import subprocess
 import wave
@@ -266,6 +268,138 @@ class MMSTTSAdapter:
 
 
 # --------------------------------------------------------------------------- #
+# TTS: Gemini API (commercial-licensed cloud TTS, paid API key required)
+# --------------------------------------------------------------------------- #
+
+class GeminiTTSAdapter:
+    """Implements "generate_voice" via the Gemini API's native TTS models
+    (`generateContent` with `responseModalities: ["AUDIO"]`).
+
+    Commercial: the Gemini API Terms of Service permit commercial use of
+    generated output (unlike the CC-BY-NC-4.0 offline Thai backends in this
+    module). The paid tier is recommended when "no training on my data" is
+    required — see
+    https://ai.google.dev/gemini-api/terms for the current terms; this
+    adapter does not re-host or re-verify those terms, it only names them.
+
+    Uses stdlib `urllib` only — no `google-generativeai` / `google-genai`
+    SDK dependency. Reads `GEMINI_API_KEY` from `os.environ` at call time
+    (never cached, never logged); availability is "key present in
+    environment", not "key is valid" (an invalid key surfaces as an HTTP
+    401/403 `ProviderUnavailableError` at call time instead).
+
+    The API key is sent ONLY via the `x-goog-api-key` request header, never
+    in the URL query string, and is never included in any exception message
+    or log line raised by this adapter.
+    """
+
+    DEFAULT_MODEL = "gemini-2.5-flash-preview-tts"
+    DEFAULT_VOICE = "Kore"  # verified good Thai output in .scratch/commercial/gemini_tts_test.py
+    LICENSE = "Gemini API Terms (commercial use allowed; paid tier recommended for no-training)"
+    _ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+    def _check_available(self) -> str:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ProviderUnavailableError(
+                "GEMINI_API_KEY is not set in the environment "
+                "(export it from a gitignored .env / secrets file first)"
+            )
+        return api_key
+
+    def generate_voice(
+        self,
+        text: str,
+        out_path: str | Path,
+        voice: str = DEFAULT_VOICE,
+        model: str = DEFAULT_MODEL,
+        **kw: Any,
+    ) -> dict[str, Any]:
+        api_key = self._check_available()
+        import urllib.error
+        import urllib.request
+
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        url = self._ENDPOINT.format(model=model)
+        payload = {
+            "contents": [{"parts": [{"text": text}]}],
+            "generationConfig": {
+                "responseModalities": ["AUDIO"],
+                "speechConfig": {
+                    "voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}
+                },
+            },
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=kw.pop("timeout", 60)) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            # Never include request headers (which carry the API key) in the
+            # raised message — only the HTTP status and the response body's
+            # own error text (Google's error payloads do not echo the key).
+            try:
+                detail = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                detail = ""
+            raise ProviderUnavailableError(
+                f"Gemini TTS request failed with HTTP {exc.code}: {detail[:500]}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise ProviderUnavailableError(f"Gemini TTS request failed (network): {exc.reason}") from exc
+
+        try:
+            candidate = body["candidates"][0]
+            part = candidate["content"]["parts"][0]
+            inline = part["inlineData"]
+            pcm = base64.b64decode(inline["data"])
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ProviderUnavailableError(
+                f"Gemini TTS response did not contain the expected audio payload: {exc}"
+            ) from exc
+
+        # Gemini TTS returns raw PCM, 24kHz 16-bit mono (verified in
+        # .scratch/commercial/gemini_tts_test.py).
+        sample_rate = 24000
+        sample_width = 2
+        channels = 1
+        try:
+            with wave.open(str(out_path), "wb") as wf:
+                wf.setnchannels(channels)
+                wf.setsampwidth(sample_width)
+                wf.setframerate(sample_rate)
+                wf.writeframes(pcm)
+        except Exception as exc:
+            raise ProviderUnavailableError(f"failed to write WAV to {out_path}: {exc}") from exc
+
+        duration_s = _ffprobe_duration(out_path)
+        if duration_s is None:
+            frame_count = len(pcm) // (sample_width * channels)
+            duration_s = frame_count / float(sample_rate)
+
+        return {
+            "executed": True,
+            "provider": "gemini_tts",
+            "model": model,
+            "voice": voice,
+            "license": self.LICENSE,
+            "path": str(out_path),
+            "duration_s": duration_s,
+        }
+
+
+# --------------------------------------------------------------------------- #
 # STT: faster-whisper (free, offline, CPU int8 supported)
 # --------------------------------------------------------------------------- #
 
@@ -420,11 +554,13 @@ def register_defaults(registry: Any) -> None:
     piper_tts = PiperTTSAdapter()
     piper_th = PiperTTSAdapter()
     mms_tts = MMSTTSAdapter()
+    gemini_tts = GeminiTTSAdapter()
 
     registry.register("generate_voice", edge_tts)
     registry.register("generate_voice:edge_tts", edge_tts)
     registry.register("generate_voice:piper_tts", piper_tts)
     registry.register("generate_voice:piper_th", piper_th)
     registry.register("generate_voice:mms_tts", mms_tts)
+    registry.register("generate_voice:gemini_tts", gemini_tts)
     registry.register("transcribe", FasterWhisperSTTAdapter())
     registry.register("render_html", BrowserRenderAdapter())

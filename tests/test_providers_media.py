@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 import tempfile
@@ -12,6 +13,7 @@ from core.providers_media import (
     BrowserRenderAdapter,
     EdgeTTSAdapter,
     FasterWhisperSTTAdapter,
+    GeminiTTSAdapter,
     MMSTTSAdapter,
     PiperTTSAdapter,
     ProviderUnavailableError,
@@ -36,6 +38,7 @@ HAS_TORCH = _has_module("torch")
 HAS_SOUNDFILE = _has_module("soundfile")
 HAS_MMS_TTS = HAS_TRANSFORMERS and HAS_TORCH and HAS_SOUNDFILE
 HAS_FFPROBE = bool(shutil.which("ffprobe"))
+HAS_GEMINI_KEY = bool(os.environ.get("GEMINI_API_KEY"))
 
 PIPER_MODEL = PiperTTSAdapter.DEFAULT_MODELS_DIR / "en_US-lessac-medium.onnx"
 HAS_PIPER_MODEL = HAS_PIPER and PIPER_MODEL.exists()
@@ -254,6 +257,40 @@ class MMSTTSAdapterTests(unittest.TestCase):
         if HAS_FFPROBE:
             self.assertIsNotNone(result["duration_s"])
             self.assertGreater(result["duration_s"], 0.5)
+
+
+class GeminiTTSAdapterTests(unittest.TestCase):
+    def test_raises_clean_error_when_key_missing_no_network_call(self):
+        env_backup = os.environ.pop("GEMINI_API_KEY", None)
+        try:
+            adapter = GeminiTTSAdapter()
+            with self.assertRaises(ProviderUnavailableError):
+                adapter.generate_voice(
+                    THAI_TEST_SENTENCE, "/tmp/should-not-exist-gemini.wav",
+                )
+        finally:
+            if env_backup is not None:
+                os.environ["GEMINI_API_KEY"] = env_backup
+
+    @unittest.skipUnless(HAS_GEMINI_KEY, "GEMINI_API_KEY not set in environment")
+    def test_generate_voice_thai_produces_real_wav(self):
+        tmp = Path(tempfile.mkdtemp(prefix="clipme-gemini-tts-"))
+        out_path = tmp / "voice_gemini_th.wav"
+        adapter = GeminiTTSAdapter()
+        try:
+            result = adapter.generate_voice(THAI_TEST_SENTENCE, out_path)
+        except ProviderUnavailableError as exc:
+            self.skipTest(f"Gemini TTS call unavailable: {exc}")
+        self.assertTrue(result["executed"])
+        self.assertEqual(result["provider"], "gemini_tts")
+        self.assertEqual(result["model"], GeminiTTSAdapter.DEFAULT_MODEL)
+        self.assertEqual(result["voice"], GeminiTTSAdapter.DEFAULT_VOICE)
+        self.assertIn("Gemini API Terms", result["license"])
+        self.assertTrue(out_path.exists())
+        self.assertGreater(out_path.stat().st_size, 0)
+        self.assertIsNotNone(result["duration_s"])
+        self.assertGreaterEqual(result["duration_s"], 1)
+        self.assertLessEqual(result["duration_s"], 15)
 
 
 if __name__ == "__main__":

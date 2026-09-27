@@ -100,6 +100,7 @@ Registers `generate_voice` (TTS), `transcribe` (STT), and `render_html`
 | `PiperTTSAdapter` | `generate_voice:piper_tts` | `import piper` succeeds AND `models/piper/<voice>.onnx`(`.json`) exists | Fully offline neural TTS; this adapter never downloads voice models itself — only English (`en_US-lessac-medium`) was confirmed present on this machine as of the install-phase check, no Thai voice was found in `rhasspy/piper-voices` at that time |
 | `FasterWhisperSTTAdapter` | `transcribe` | `import faster_whisper` succeeds | Offline Whisper STT, CPU `int8`; the model is loaded lazily on first `transcribe()` call and cached on the instance (never more than one loaded model per instance, for this machine's frugal-RAM constraint) |
 | `BrowserRenderAdapter` | `render_html` | `import playwright.sync_api` succeeds (a missing Chromium browser binary is also raised as `ProviderUnavailableError` at render time, not a raw Playwright exception) | Headless Chromium via `playwright`; accepts either an HTML file path (`file://` navigation) or a raw HTML string (`page.set_content`) |
+| `GeminiTTSAdapter` | `generate_voice:gemini_tts` | `GEMINI_API_KEY` present in `os.environ` (network call is still required at synthesis time; an HTTP/network failure is also raised as `ProviderUnavailableError`) | Gemini API native TTS (`generateContent`, `responseModalities: ["AUDIO"]`), stdlib `urllib` only, no `google-genai`/`google-generativeai` SDK dependency |
 
 `register_defaults(registry)` registers `generate_voice` -> `EdgeTTSAdapter`
 (always installable, no local model download required), `transcribe` ->
@@ -125,3 +126,43 @@ check), a live `playwright` Chromium render to a real `.png` from both a
 raw HTML string and an HTML file, and a real TTS-to-STT round trip
 (`edge-tts` -> `faster-whisper`) asserting at least 50% of the source
 sentence's words reappear (case-insensitively) in the transcript.
+
+### Gemini TTS (`generate_voice:gemini_tts`) — commercial-licensed Thai voice
+
+Unlike every other backend in this module (all free/local/non-commercial),
+`GeminiTTSAdapter` calls the paid Gemini API's native TTS
+(`gemini-2.5-flash-preview-tts` by default; both model and voice are
+constructor/call parameters). It exists specifically to give clipme a
+Thai voice that is cleared for commercial output, not just evaluation.
+
+- **License**: Gemini API Terms of Service — commercial use of generated
+  output is allowed. Google's paid tier is recommended when "no training on
+  submitted data" matters for a customer's content; the free tier's terms
+  may differ on data use. Read the current terms at
+  https://ai.google.dev/gemini-api/terms before relying on this for a real
+  customer deliverable — this doc summarizes, it is not the terms.
+- **Auth**: `GEMINI_API_KEY` read from `os.environ` at call time (not
+  cached, not logged). The key is sent only via the `x-goog-api-key` HTTP
+  header, never in the URL query string. Export it from a gitignored
+  secrets file (`.env`, loaded with `set -a; . .env; set +a`, or
+  `~/.config/araya/gemini.env`) — never commit it, never put it in a
+  command-line argv where it would land in shell history / `ps`.
+- **Cost**: pay-per-character/audio-second on Google's standard Gemini API
+  pricing (not free-tier-safe for high volume) — check current pricing at
+  https://ai.google.dev/gemini-api/docs/pricing before batch use; this
+  adapter does not track or cap spend itself.
+- **Availability check**: key presence only, not validity — an invalid or
+  quota-exhausted key surfaces as an HTTP 401/403/429
+  `ProviderUnavailableError` at call time, never a fabricated result.
+- **Audio format**: Gemini TTS returns raw base64 PCM (24kHz, 16-bit mono),
+  which this adapter decodes and writes to a proper WAV via the stdlib
+  `wave` module. Duration is measured via `ffprobe` when available, else
+  computed from the raw PCM sample count (never left unmeasured).
+- **Thai**: VERIFIED on this machine, 2026-09-27 — synthesized
+  `"สวัสดีครับ นี่คือการทดสอบเสียงภาษาไทย"` via the `Kore` voice (the
+  adapter's default; picked from a proof-of-concept script in
+  `.scratch/commercial/gemini_tts_test.py` that confirmed good Thai
+  output), producing an audible, well-formed Thai WAV file.
+- Registered under `generate_voice:gemini_tts` only — `edge_tts` remains
+  the bare `generate_voice` default; a caller opts into the paid,
+  commercial-cleared backend explicitly.
