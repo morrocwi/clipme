@@ -92,6 +92,25 @@ class KernelTests(unittest.TestCase):
             self.assertIn(skill,active)
         self.assertGreater(len(plan["tasks"]),12)
 
+    def test_master_signature_changes_when_graph_expands(self):
+        project=self.project("short-90s",infographic=True,narration=True)
+        graph1=self.short_graph()
+        tasks1={task.id:task for task in self.planner.build_tasks(project,graph1)}
+        master1=tasks1["editor@MASTER"].signature()
+        data=graph1.to_dict()
+        for unit in data["units"]:
+            if unit["id"]=="P":
+                unit["children"].append("SEQ2")
+        data["units"].extend([
+            {"id":"SEQ2","kind":"sequence","parent":"P","children":["SC2"],"refs":{}},
+            {"id":"SC2","kind":"scene","parent":"SEQ2","children":["B2"],"refs":{}},
+            {"id":"B2","kind":"beat","parent":"SC2","children":["SH3"],"refs":{}},
+            {"id":"SH3","kind":"shot","parent":"B2","children":[],"refs":{}}
+        ])
+        graph2=UnitGraph.from_dict(data)
+        tasks2={task.id:task for task in self.planner.build_tasks(project,graph2)}
+        self.assertNotEqual(master1,tasks2["editor@MASTER"].signature())
+
     def test_graph_profile_validation(self):
         profile=yaml.safe_load((ROOT/"profiles/short-90s.yaml").read_text())
         issues=GraphValidator().validate(self.short_graph(),profile)
