@@ -7,9 +7,7 @@ import json
 
 from .graph import UnitGraph, Unit
 from .registry import SkillRegistry, SkillManifest
-
-
-ACTIVATION_RANK = {"skip": 0, "optional": 1, "inline": 2, "required": 3}
+from .state import ACTIVATION_RANK
 
 
 @dataclass(frozen=True)

@@ -6,6 +6,8 @@ from typing import Any
 
 import yaml
 
+from .state import ACTIVATION_RANK
+
 
 VALID_ACTIVATION = {"required", "inline", "optional", "skip"}
 
@@ -71,7 +73,6 @@ class SkillManifest:
         )
 
     def activation_for(self, profile: str, features: set[str]) -> str:
-        rank = {"skip": 0, "optional": 1, "inline": 2, "required": 3}
         status = self.profile_activation.get(profile, self.default_activation)
         if status not in VALID_ACTIVATION:
             raise ValueError(f"invalid activation status {status} in {self.id}")
@@ -79,7 +80,7 @@ class SkillManifest:
             if rule.status not in VALID_ACTIVATION:
                 raise ValueError(f"invalid rule activation {rule.status} in {self.id}")
             if rule.matches(features):
-                if rule.force or rank[rule.status] > rank[status]:
+                if rule.force or ACTIVATION_RANK[rule.status] > ACTIVATION_RANK[status]:
                     status = rule.status
         return status
 

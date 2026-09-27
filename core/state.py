@@ -18,6 +18,12 @@ class TaskStatus(str, Enum):
 
 TERMINAL = {TaskStatus.PASSED, TaskStatus.SKIPPED}
 
+# Shared activation-rank ordering used by both core.planner (skill_overrides
+# validation) and core.registry (SkillManifest.activation_for rule ranking).
+# Kept in one place here (state.py has no dependency on either module) to
+# avoid a circular import between planner.py and registry.py.
+ACTIVATION_RANK = {"skip": 0, "optional": 1, "inline": 2, "required": 3}
+
 _ALLOWED = {
     TaskStatus.PENDING: {TaskStatus.READY, TaskStatus.SKIPPED},
     TaskStatus.READY: {TaskStatus.RUNNING, TaskStatus.SKIPPED},
