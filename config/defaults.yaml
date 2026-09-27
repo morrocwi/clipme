@@ -1,0 +1,45 @@
+version: 1
+lead:
+  recommended_family: opus-5.x
+  adapter: models/opus-5.md
+  fallback_adapter: models/generic.md
+
+routing:
+  producer: lead
+  research: capable_verified_model
+  story: lead
+  director: lead
+  storyboard: vision_capable_model
+  cinematography: vision_capable_model
+  production_design: vision_capable_model
+  performance: lead
+  motion_vfx: capable_generation_or_code_model
+  sound: audio_capable_or_tts_provider
+  editor: lead
+  continuity: independent_review_preferred
+  color_finishing: vision_capable_model
+  qc: independent_review_preferred
+  accessibility_delivery: deterministic_tools_preferred
+
+runtime:
+  renderer_preference:
+    - code_vector_deterministic
+    - compositing
+    - generated_still_motion
+    - generated_video
+    - hybrid
+  assembler: ffmpeg
+  secrets: environment_only
+
+quality:
+  blocking_gates:
+    - FACT
+    - STORY
+    - DIRECTION
+    - CONTINUITY
+    - READABILITY
+    - AUDIO
+    - VISUAL
+    - RIGHTS
+    - TECH
+  require_master_qc_pass: true
