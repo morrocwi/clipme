@@ -1,0 +1,16 @@
+{
+  "project_id": "PROJECT",
+  "facts": [
+    {
+      "fact_id": "FACT_001",
+      "claim": "",
+      "status": "unverified",
+      "source": "",
+      "source_date_or_version": "",
+      "evidence_location": "",
+      "notes": "",
+      "script_refs": [],
+      "scene_refs": []
+    }
+  ]
+}
