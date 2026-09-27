@@ -1,0 +1,15 @@
+id: editor
+layer: creator
+scopes: [sequence, master]
+task_scope:
+  short-90s: master
+  explainer: master
+  longform: [sequence, master]
+  film: [sequence, master]
+requires: [director]
+after_if_active: [motion-vfx, sound, storyboard, cinematography]
+consumes: [rendered_shot, voice_assets, sound_plan]
+produces: [timeline, sequence_master, assembly_master]
+gates: [STORY, DIRECTION, AUDIO, VISUAL]
+activation:
+  default: required
