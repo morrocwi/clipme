@@ -272,10 +272,15 @@ def cmd_plan(args) -> None:
     previous = load_data(state_path).get("tasks", {}) if state_path.exists() else {}
     states: dict[str, TaskState] = {}
     for task in task_objects:
+        signature = task.signature()
         if task.id in previous:
-            states[task.id] = TaskState.from_dict(previous[task.id])
+            prior = TaskState.from_dict(previous[task.id])
+            if prior.metadata.get("plan_signature") == signature:
+                states[task.id] = prior
+            else:
+                states[task.id] = TaskState(task_id=task.id, metadata={"plan_signature": signature})
         else:
-            states[task.id] = TaskState(task_id=task.id)
+            states[task.id] = TaskState(task_id=task.id, metadata={"plan_signature": signature})
     orch = Orchestrator(task_objects, states)
     write_json(state_path, orch.snapshot())
 
