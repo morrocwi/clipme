@@ -1,0 +1,24 @@
+id: continuity
+layer: assurance
+scopes: [scene, sequence, master]
+task_scope:
+  short-90s: master
+  explainer: scene
+  longform: [sequence, master]
+  film: [sequence, master]
+requires: [director]
+after_if_active: [editor, motion-vfx, production-design, performance, cinematography]
+consumes: [unit_graph, shot_plan, rendered_shot, continuity_bible]
+produces: [continuity_report, continuity_state]
+gates: [CONTINUITY]
+assurance: true
+activation:
+  default: optional
+  profiles:
+    short-90s: inline
+    explainer: inline
+    longform: required
+    film: required
+  rules:
+    - status: required
+      when_any: [characters, persistent_world, multi_scene, complex_geography]
