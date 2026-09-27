@@ -1,0 +1,16 @@
+id: qc
+layer: assurance
+scopes: [sequence, master]
+task_scope:
+  short-90s: master
+  explainer: master
+  longform: [sequence, master]
+  film: [sequence, master]
+requires: [editor, continuity]
+after_if_active: [color-finishing, sound]
+consumes: [timeline, sequence_master, assembly_master, fact_ledger, continuity_report]
+produces: [qc_report, repair_tickets]
+gates: [FACT, STORY, DIRECTION, CONTINUITY, READABILITY, AUDIO, VISUAL, RIGHTS, TECH]
+assurance: true
+activation:
+  default: required
