@@ -21,24 +21,72 @@ no paid API keys, no new hard dependency added to `core/`.
 |---|---|---|---|
 | `OllamaTextAdapter` | `generate_text`, `generate_text:ollama` | `GET /api/tags` on the local Ollama server succeeds AND the requested model is listed | Local Ollama server (default model `qwen2.5:3b`, `http://localhost:11434`) |
 | `ClaudeCLITextAdapter` | `generate_text`, `generate_text:claude_cli` | `shutil.which("claude")` | `claude -p <prompt> --output-format text` subprocess, with a timeout |
+| `GeminiCLITextAdapter` | `generate_text`, `generate_text:gemini_cli` | `shutil.which("gemini")` | `gemini -p <prompt>` subprocess, with a timeout |
+| `CodexCLITextAdapter` | `generate_text`, `generate_text:codex_cli` | `shutil.which("codex")` | `codex exec --sandbox read-only <prompt>` subprocess, with a timeout |
 
 `register_defaults(registry)` registers `generate_text` as the first
-available of `[ollama, claude_cli]` (falling back to the Ollama adapter,
-unchecked, if neither is available — calling it then raises
-`ProviderUnavailableError` at call time rather than silently fabricating a
-response). It also registers `generate_text:ollama` and
-`generate_text:claude_cli` explicitly so a caller can pick a specific
-backend instead of the first-available default.
+available of `[ollama, claude_cli, codex_cli, gemini_cli]` (falling back to
+the Ollama adapter, unchecked, if none is available — calling it then
+raises `ProviderUnavailableError` at call time rather than silently
+fabricating a response). It also registers each backend explicitly under
+its own `generate_text:<backend>` capability name so a caller can pick a
+specific backend instead of the first-available default.
 
-Both adapters import their heavy/optional pieces (`urllib`, `json`,
+Gemini is last in that fallback order, after Codex: if Codex can already do
+the job it is preferred, since Codex authenticates via its own logged-in
+CLI session while Gemini's auth (below) draws on paid API quota — Gemini is
+only reached once Ollama, Claude CLI, and Codex CLI are all unavailable.
+
+All four adapters import their heavy/optional pieces (`urllib`, `json`,
 `subprocess`) lazily inside methods, so importing `core/providers_text.py`
-never fails on a CI machine that lacks Ollama or the `claude` CLI.
+never fails on a CI machine that lacks any of Ollama, `claude`, `gemini`,
+or `codex`.
+
+**Account-login for Claude/Codex; API-key env var for Gemini.**
+`ClaudeCLITextAdapter` and `CodexCLITextAdapter` shell out to a CLI binary
+and rely entirely on that CLI's own logged-in account/session. Neither
+reads, sets, or requires an API key. If the account session is missing,
+expired, or ineligible, the underlying CLI process itself fails and the
+adapter surfaces that as `ProviderUnavailableError`.
+
+`GeminiCLITextAdapter` is different: the `gemini` CLI's free/OAuth Code
+Assist tier is not reliably usable on this machine (see below), so its
+adapter instead relies on the standard `GEMINI_API_KEY` environment
+variable that the `gemini` CLI itself reads. The adapter does not read,
+set, inspect, or hardcode that key anywhere in its own code — it passes the
+parent process's environment through to the `gemini` subprocess unchanged
+(`subprocess.run(..., env=os.environ.copy())`) and lets the CLI pick up
+whatever auth is already in the caller's environment. To use it: export
+`GEMINI_API_KEY` from a secrets file outside the repo (chmod 600); never
+commit it. If the key is absent or invalid, the `gemini` CLI process itself
+fails and the adapter surfaces that as `ProviderUnavailableError`, same as
+the other CLI adapters.
+
+Known account-state note (this machine, verified 2026-09-27): `gemini
+--version` reports `0.46.0` and the binary is on PATH; the OAuth/Code
+Assist path (`GOOGLE_GENAI_USE_GCA=true`, no key) fails with
+`IneligibleTierError: This client is no longer supported for Gemini Code
+Assist for individuals` (the CLI is asking for a migration to Antigravity),
+so that path is not usable here — but with `GEMINI_API_KEY` exported into
+the environment (from `~/.config/araya/gemini.env`, never printed or
+committed) the same CLI succeeds and `test_real_gemini_cli_generate` passes
+with a real call. `codex exec` initially failed when probed from `$HOME`
+(not a git repo) with "Not inside a trusted directory and
+--skip-git-repo-check was not specified"; run from inside this repo (a
+trusted git checkout, as `tests/test_providers_text.py` does), `codex exec
+--sandbox read-only` succeeds using the account's already-logged-in
+session — verified with a real call returning `"OK"`. Both adapters are
+still added and registered; their real-call tests are written to skip (not
+fail) when the CLI itself reports the session/environment as unusable,
+since that reflects account/key/trust state, not the adapter's
+correctness.
 
 Tests: `tests/test_providers_text.py`. Model/network-dependent assertions
 are guarded with `unittest.skipUnless(<availability check>)` so CI without
-Ollama/`claude` still passes; when the tool IS present, one real
-integration assertion runs against it (a live `qwen2.5:3b` generate call,
-or a live `claude -p` call).
+Ollama/`claude`/`gemini`/`codex` still passes; when a tool IS present, its
+real-call test attempts a live generate call and additionally skips (rather
+than fails) if that live call raises `ProviderUnavailableError` — an
+account/session/trust-state issue distinct from binary presence.
 
 ## Media adapters (`core/providers_media.py`)
 
