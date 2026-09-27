@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipme.local/schemas/scene.schema.json",
+  "title": "clipme scene",
+  "type": "object",
+  "required": ["id","sequence_id","objective","entry_state","exit_state","beats"],
+  "properties": {
+    "id":{"type":"string"},
+    "sequence_id":{"type":"string"},
+    "title":{"type":"string"},
+    "slugline":{"type":"string"},
+    "objective":{"type":"string"},
+    "viewer_question":{"type":"string"},
+    "point_of_view":{"type":"string"},
+    "performance_intent":{"type":"string"},
+    "spatial_strategy":{"type":"string"},
+    "coverage_strategy":{"type":"string"},
+    "visual_motif":{"type":"string"},
+    "sound_strategy":{"type":"string"},
+    "entry_state":{"type":"object","additionalProperties":true},
+    "exit_state":{"type":"object","additionalProperties":true},
+    "beats":{"type":"array","minItems":1,"items":{"type":"string"}},
+    "shot_refs":{"type":"array","items":{"type":"string"}},
+    "continuity_refs":{"type":"array","items":{"type":"string"}},
+    "fact_refs":{"type":"array","items":{"type":"string"}},
+    "target_seconds":{"type":"number","exclusiveMinimum":0},
+    "status":{"enum":["draft","review","locked","rendered","passed"]}
+  },
+  "additionalProperties":true
+}
