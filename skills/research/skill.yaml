@@ -1,0 +1,19 @@
+id: research
+layer: assurance
+scopes: [project]
+task_scope:
+  default: project
+requires: []
+consumes: [sources, brief]
+produces: [fact_ledger, source_register]
+gates: [FACT]
+assurance: true
+activation:
+  default: skip
+  profiles:
+    explainer: optional
+    longform: optional
+    film: optional
+  rules:
+    - status: required
+      when_any: [factual, documentary, scientific, historical, journalistic, data_driven]
