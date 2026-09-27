@@ -172,12 +172,20 @@ class GeminiCLITextAdapter:
     def generate_text(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
         self._check_available()
 
+        import os
         import subprocess
 
         timeout = kwargs.get("timeout", self.timeout)
         cmd = ["gemini", "-p", prompt]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+            # Pass the parent process's environment through unchanged so the
+            # `gemini` CLI can read whatever auth it needs (e.g. a
+            # GEMINI_API_KEY the caller loaded into its own env from a
+            # secrets file). This adapter never reads, sets, or requires an
+            # API key itself — it only forwards what the caller already has.
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=timeout, env=os.environ.copy()
+            )
         except Exception as exc:
             raise ProviderUnavailableError(f"gemini CLI invocation failed: {exc}") from exc
 
@@ -271,23 +279,29 @@ def register_defaults(registry: Any) -> None:
     """Registers the free/local text adapters on `registry`.
 
     Registers "generate_text" as the first available of
-    [ollama, claude_cli, gemini_cli, codex_cli] (falls back to the ollama
+    [ollama, claude_cli, codex_cli, gemini_cli] (falls back to the ollama
     adapter, unchecked, if none is available — calling it will then raise
     `ProviderUnavailableError` at call time, which is correct: no provider
     means no silent fabrication). Also registers each backend explicitly
     under its own capability name so a caller can pick one deliberately.
+
+    Gemini CLI is last in the fallback order: if Codex can do the job, use
+    Codex — Codex authenticates via the CLI's own logged-in session, while
+    Gemini's auth (a `GEMINI_API_KEY` the caller loads into its own
+    environment) draws on paid API quota. Preferring Codex first keeps that
+    quota spend to only when nothing else is available.
     """
     ollama = OllamaTextAdapter()
     claude_cli = ClaudeCLITextAdapter()
-    gemini_cli = GeminiCLITextAdapter()
     codex_cli = CodexCLITextAdapter()
+    gemini_cli = GeminiCLITextAdapter()
 
     registry.register("generate_text:ollama", ollama)
     registry.register("generate_text:claude_cli", claude_cli)
     registry.register("generate_text:gemini_cli", gemini_cli)
     registry.register("generate_text:codex_cli", codex_cli)
 
-    for adapter in (ollama, claude_cli, gemini_cli, codex_cli):
+    for adapter in (ollama, claude_cli, codex_cli, gemini_cli):
         if adapter.is_available():
             registry.register("generate_text", adapter)
             break

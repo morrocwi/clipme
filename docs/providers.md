@@ -25,47 +25,60 @@ no paid API keys, no new hard dependency added to `core/`.
 | `CodexCLITextAdapter` | `generate_text`, `generate_text:codex_cli` | `shutil.which("codex")` | `codex exec --sandbox read-only <prompt>` subprocess, with a timeout |
 
 `register_defaults(registry)` registers `generate_text` as the first
-available of `[ollama, claude_cli, gemini_cli, codex_cli]` (falling back to
+available of `[ollama, claude_cli, codex_cli, gemini_cli]` (falling back to
 the Ollama adapter, unchecked, if none is available — calling it then
 raises `ProviderUnavailableError` at call time rather than silently
 fabricating a response). It also registers each backend explicitly under
 its own `generate_text:<backend>` capability name so a caller can pick a
 specific backend instead of the first-available default.
 
+Gemini is last in that fallback order, after Codex: if Codex can already do
+the job it is preferred, since Codex authenticates via its own logged-in
+CLI session while Gemini's auth (below) draws on paid API quota — Gemini is
+only reached once Ollama, Claude CLI, and Codex CLI are all unavailable.
+
 All four adapters import their heavy/optional pieces (`urllib`, `json`,
 `subprocess`) lazily inside methods, so importing `core/providers_text.py`
 never fails on a CI machine that lacks any of Ollama, `claude`, `gemini`,
 or `codex`.
 
-**Account-login only, no API keys.** `ClaudeCLITextAdapter`,
-`GeminiCLITextAdapter`, and `CodexCLITextAdapter` all shell out to a CLI
-binary and rely entirely on that CLI's own logged-in account/session (OAuth
-/ Code Assist for `gemini`, the account session for `codex`). None of the
-three adapters reads, sets, or requires an API key or an environment
-variable such as `GEMINI_API_KEY`. If the account session is missing,
+**Account-login for Claude/Codex; API-key env var for Gemini.**
+`ClaudeCLITextAdapter` and `CodexCLITextAdapter` shell out to a CLI binary
+and rely entirely on that CLI's own logged-in account/session. Neither
+reads, sets, or requires an API key. If the account session is missing,
 expired, or ineligible, the underlying CLI process itself fails and the
 adapter surfaces that as `ProviderUnavailableError`.
 
-Known account-state caveat (this machine, verified 2026-09-27): `gemini
---version` reports `0.46.0` and the binary is on PATH, but neither the
-default (no-env) invocation nor `GOOGLE_GENAI_USE_GCA=true` produces a
-working session — the no-env call fails with the standard "Please set an
-Auth method..." message, and the GCA path fails with
+`GeminiCLITextAdapter` is different: the `gemini` CLI's free/OAuth Code
+Assist tier is not reliably usable on this machine (see below), so its
+adapter instead relies on the standard `GEMINI_API_KEY` environment
+variable that the `gemini` CLI itself reads. The adapter does not read,
+set, inspect, or hardcode that key anywhere in its own code — it passes the
+parent process's environment through to the `gemini` subprocess unchanged
+(`subprocess.run(..., env=os.environ.copy())`) and lets the CLI pick up
+whatever auth is already in the caller's environment. To use it: export
+`GEMINI_API_KEY` from a secrets file outside the repo (chmod 600); never
+commit it. If the key is absent or invalid, the `gemini` CLI process itself
+fails and the adapter surfaces that as `ProviderUnavailableError`, same as
+the other CLI adapters.
+
+Known account-state note (this machine, verified 2026-09-27): `gemini
+--version` reports `0.46.0` and the binary is on PATH; the OAuth/Code
+Assist path (`GOOGLE_GENAI_USE_GCA=true`, no key) fails with
 `IneligibleTierError: This client is no longer supported for Gemini Code
-Assist for individuals` (the CLI is asking for a migration to Antigravity).
-`~/.gemini/settings.json` has no `selectedAuthType` and no API-key env vars
-are set anywhere in the environment, consistent with "never configured /
-no longer eligible" rather than a code bug in the adapter — Gemini's
-real-call test is expected to skip on this machine until that account is
-fixed. `codex exec` initially failed when probed from `$HOME` (not a git
-repo) with "Not inside a trusted directory and --skip-git-repo-check was
-not specified"; run from inside this repo (a trusted git checkout, as
-`tests/test_providers_text.py` does), `codex exec --sandbox read-only`
-succeeds using the account's already-logged-in session — verified with a
-real call returning `"OK"`. Both adapters are still added and registered
-per the project's account-login policy; their real-call tests are written
-to skip (not fail) when the CLI itself reports the session/environment as
-unusable, since that reflects account/trust state, not the adapter's
+Assist for individuals` (the CLI is asking for a migration to Antigravity),
+so that path is not usable here — but with `GEMINI_API_KEY` exported into
+the environment (from `~/.config/araya/gemini.env`, never printed or
+committed) the same CLI succeeds and `test_real_gemini_cli_generate` passes
+with a real call. `codex exec` initially failed when probed from `$HOME`
+(not a git repo) with "Not inside a trusted directory and
+--skip-git-repo-check was not specified"; run from inside this repo (a
+trusted git checkout, as `tests/test_providers_text.py` does), `codex exec
+--sandbox read-only` succeeds using the account's already-logged-in
+session — verified with a real call returning `"OK"`. Both adapters are
+still added and registered; their real-call tests are written to skip (not
+fail) when the CLI itself reports the session/environment as unusable,
+since that reflects account/key/trust state, not the adapter's
 correctness.
 
 Tests: `tests/test_providers_text.py`. Model/network-dependent assertions

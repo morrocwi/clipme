@@ -140,10 +140,10 @@ class RegisterDefaultsTests(unittest.TestCase):
             self.assertIsInstance(default, OllamaTextAdapter)
         elif shutil.which("claude"):
             self.assertIsInstance(default, ClaudeCLITextAdapter)
-        elif shutil.which("gemini"):
-            self.assertIsInstance(default, GeminiCLITextAdapter)
         elif shutil.which("codex"):
             self.assertIsInstance(default, CodexCLITextAdapter)
+        elif shutil.which("gemini"):
+            self.assertIsInstance(default, GeminiCLITextAdapter)
 
 
 if __name__ == "__main__":
