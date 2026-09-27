@@ -121,22 +121,39 @@ def cmd_validate(args) -> None:
     if not project_path.exists():
         die(f"missing {project_path}")
 
+    failures = []
+
     project = load_data(project_path)
-    errors = validate_json_schema(project, SCHEMAS / "project.schema.json")
+    for err in validate_json_schema(project, SCHEMAS / "project.schema.json"):
+        failures.append(f"project.yaml: {err}")
 
-    shot_errors = []
-    for shot_path in sorted((project_dir / "shots").glob("*.json")):
-        data = load_data(shot_path)
-        for err in validate_json_schema(data, SCHEMAS / "shot.schema.json"):
-            shot_errors.append(f"{shot_path.name}: {err}")
+    def validate_globs(directory: str, patterns: list[str], schema_name: str) -> None:
+        seen = set()
+        for pattern in patterns:
+            for path in sorted((project_dir / directory).glob(pattern)):
+                if path in seen:
+                    continue
+                seen.add(path)
+                data = load_data(path)
+                for err in validate_json_schema(data, SCHEMAS / schema_name):
+                    failures.append(f"{path.relative_to(project_dir)}: {err}")
 
-    if errors or shot_errors:
-        for e in errors + shot_errors:
-            print(f"FAIL {e}")
+    validate_globs("sequences", ["*.yaml", "*.yml", "*.json"], "sequence.schema.json")
+    validate_globs("scenes", ["*.yaml", "*.yml", "*.json"], "scene.schema.json")
+    validate_globs("shots", ["*.yaml", "*.yml", "*.json"], "shot.schema.json")
+
+    timeline_path = project_dir / "manifests" / "timeline.json"
+    if timeline_path.exists():
+        data = load_data(timeline_path)
+        for err in validate_json_schema(data, SCHEMAS / "timeline.schema.json"):
+            failures.append(f"manifests/timeline.json: {err}")
+
+    if failures:
+        for failure in failures:
+            print(f"FAIL {failure}")
         raise SystemExit(1)
 
-    print("PASS project and shot contracts")
-
+    print("PASS project, sequence, scene, shot and timeline contracts")
 
 def require_binary(name: str) -> str:
     path = shutil.which(name)
