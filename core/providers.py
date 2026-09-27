@@ -31,6 +31,16 @@ class CapabilityNotFoundError(ProviderError):
     """No provider is registered for the requested capability."""
 
 
+class ProviderUnavailableError(ProviderError):
+    """Raised when a provider's cheap availability check fails, or the
+    underlying tool/model/network is not present on this machine.
+
+    Callers should catch this to fall back to another provider rather than
+    have the adapter fail deep inside a network/subprocess call. Defined
+    once here and re-exported by `providers_text.py` / `providers_media.py`
+    so both modules raise (and callers can catch) the same class."""
+
+
 # --------------------------------------------------------------------------- #
 # Capability protocols
 # --------------------------------------------------------------------------- #
@@ -113,3 +123,24 @@ class EchoTextAdapter:
             "note": "dry-run echo adapter, no model was called",
             "echo": prompt,
         }
+
+
+# --------------------------------------------------------------------------- #
+# Default registry (free/local providers)
+# --------------------------------------------------------------------------- #
+
+def default_registry() -> ProviderRegistry:
+    """Builds a `ProviderRegistry` with the free/local text and media
+    provider defaults registered.
+
+    Imports `providers_text` / `providers_media` lazily so this module
+    still imports cleanly on a machine that lacks
+    `requirements-providers.txt` (those two modules' own heavy
+    dependencies are already lazy per-adapter, but importing them at
+    module scope here would be an unnecessary coupling)."""
+    from . import providers_media, providers_text
+
+    registry = ProviderRegistry()
+    providers_text.register_defaults(registry)
+    providers_media.register_defaults(registry)
+    return registry

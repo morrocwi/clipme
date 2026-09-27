@@ -15,3 +15,5 @@ tmp/
 examples/**/*.mp4
 examples/**/output/
 examples/**/out/
+.scratch/
+models/piper/

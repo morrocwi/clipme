@@ -7,3 +7,9 @@ jsonschema>=4.20
 # subprocess binaries resolved via PATH, never as a Python API.
 imageio-ffmpeg>=0.5  # provides a static ffmpeg binary
 static-ffmpeg>=2.7   # provides static ffmpeg + ffprobe binaries
+
+# Optional local providers (edge-tts, piper-tts, faster-whisper, playwright)
+# live in requirements-providers.txt instead of here: they are heavier/slower
+# to install and are not required for CI's smoke tests (.github/workflows/
+# ci.yml installs this file only, on Python 3.10-3.12). Install them with
+# scripts/bootstrap.sh (best-effort) or `pip install -r requirements-providers.txt`.
