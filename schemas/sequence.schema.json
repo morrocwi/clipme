@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipme.local/schemas/sequence.schema.json",
+  "title": "clipme sequence",
+  "type": "object",
+  "required": ["id","title","objective","entry_state","exit_state","scenes"],
+  "properties": {
+    "id":{"type":"string"},
+    "title":{"type":"string"},
+    "objective":{"type":"string"},
+    "viewer_question":{"type":"string"},
+    "entry_state":{"type":"object","additionalProperties":true},
+    "exit_state":{"type":"object","additionalProperties":true},
+    "setup_refs":{"type":"array","items":{"type":"string"}},
+    "payoff_refs":{"type":"array","items":{"type":"string"}},
+    "continuity_refs":{"type":"array","items":{"type":"string"}},
+    "fact_refs":{"type":"array","items":{"type":"string"}},
+    "scenes":{"type":"array","minItems":1,"items":{"type":"string"}},
+    "transition_in":{"type":"string"},
+    "transition_out":{"type":"string"},
+    "target_seconds":{"type":"number","exclusiveMinimum":0},
+    "status":{"enum":["draft","review","locked","rendered","passed"]}
+  },
+  "additionalProperties":true
+}
