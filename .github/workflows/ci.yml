@@ -16,21 +16,34 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -r requirements.txt
+
       - name: Python syntax
-        run: python -m py_compile clipme.py
-      - name: Init and validate short
+        run: python -m py_compile clipme.py core/*.py
+
+      - name: Adaptive orchestration unit tests
+        run: python -m unittest -v tests/test_kernel.py
+
+      - name: Short bootstrap
         run: |
           python clipme.py init /tmp/clipme-short --profile short-90s --title "CI Short" --duration 60
           python clipme.py validate /tmp/clipme-short
-      - name: Init and validate explainer
+          python clipme.py plan /tmp/clipme-short
+          python clipme.py next /tmp/clipme-short
+
+      - name: Explainer bootstrap
         run: |
           python clipme.py init /tmp/clipme-explainer --profile explainer --title "CI Explainer" --duration 180
           python clipme.py validate /tmp/clipme-explainer
-      - name: Init and validate longform
+          python clipme.py plan /tmp/clipme-explainer
+
+      - name: Longform bootstrap
         run: |
           python clipme.py init /tmp/clipme-long --profile longform --title "CI Long" --duration 1800
           python clipme.py validate /tmp/clipme-long
-      - name: Init and validate film
+          python clipme.py plan /tmp/clipme-long
+
+      - name: Film bootstrap
         run: |
           python clipme.py init /tmp/clipme-film --profile film --title "CI Film" --duration 7200
           python clipme.py validate /tmp/clipme-film
+          python clipme.py plan /tmp/clipme-film
