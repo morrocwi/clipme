@@ -1,0 +1,22 @@
+id: short-90s
+duration:
+  min_seconds: 15
+  max_seconds: 90
+planning:
+  primary_unit: beat
+  allowed_hierarchy: [project, sequence, scene, beat, shot]
+  progressive_lock: light
+story:
+  recommended_sequences: [1, 2]
+  recommended_beats: [3, 8]
+  hook_deadline_seconds: 3
+  one_core_promise: true
+direction:
+  visual_density: high_but_readable
+  transition_preference: causal
+  repeated_recap: false
+render:
+  unit: shot
+qc:
+  local_passes: [shot, master]
+  independent_review_recommended: true
