@@ -21,24 +21,59 @@ no paid API keys, no new hard dependency added to `core/`.
 |---|---|---|---|
 | `OllamaTextAdapter` | `generate_text`, `generate_text:ollama` | `GET /api/tags` on the local Ollama server succeeds AND the requested model is listed | Local Ollama server (default model `qwen2.5:3b`, `http://localhost:11434`) |
 | `ClaudeCLITextAdapter` | `generate_text`, `generate_text:claude_cli` | `shutil.which("claude")` | `claude -p <prompt> --output-format text` subprocess, with a timeout |
+| `GeminiCLITextAdapter` | `generate_text`, `generate_text:gemini_cli` | `shutil.which("gemini")` | `gemini -p <prompt>` subprocess, with a timeout |
+| `CodexCLITextAdapter` | `generate_text`, `generate_text:codex_cli` | `shutil.which("codex")` | `codex exec --sandbox read-only <prompt>` subprocess, with a timeout |
 
 `register_defaults(registry)` registers `generate_text` as the first
-available of `[ollama, claude_cli]` (falling back to the Ollama adapter,
-unchecked, if neither is available — calling it then raises
-`ProviderUnavailableError` at call time rather than silently fabricating a
-response). It also registers `generate_text:ollama` and
-`generate_text:claude_cli` explicitly so a caller can pick a specific
-backend instead of the first-available default.
+available of `[ollama, claude_cli, gemini_cli, codex_cli]` (falling back to
+the Ollama adapter, unchecked, if none is available — calling it then
+raises `ProviderUnavailableError` at call time rather than silently
+fabricating a response). It also registers each backend explicitly under
+its own `generate_text:<backend>` capability name so a caller can pick a
+specific backend instead of the first-available default.
 
-Both adapters import their heavy/optional pieces (`urllib`, `json`,
+All four adapters import their heavy/optional pieces (`urllib`, `json`,
 `subprocess`) lazily inside methods, so importing `core/providers_text.py`
-never fails on a CI machine that lacks Ollama or the `claude` CLI.
+never fails on a CI machine that lacks any of Ollama, `claude`, `gemini`,
+or `codex`.
+
+**Account-login only, no API keys.** `ClaudeCLITextAdapter`,
+`GeminiCLITextAdapter`, and `CodexCLITextAdapter` all shell out to a CLI
+binary and rely entirely on that CLI's own logged-in account/session (OAuth
+/ Code Assist for `gemini`, the account session for `codex`). None of the
+three adapters reads, sets, or requires an API key or an environment
+variable such as `GEMINI_API_KEY`. If the account session is missing,
+expired, or ineligible, the underlying CLI process itself fails and the
+adapter surfaces that as `ProviderUnavailableError`.
+
+Known account-state caveat (this machine, verified 2026-09-27): `gemini
+--version` reports `0.46.0` and the binary is on PATH, but neither the
+default (no-env) invocation nor `GOOGLE_GENAI_USE_GCA=true` produces a
+working session — the no-env call fails with the standard "Please set an
+Auth method..." message, and the GCA path fails with
+`IneligibleTierError: This client is no longer supported for Gemini Code
+Assist for individuals` (the CLI is asking for a migration to Antigravity).
+`~/.gemini/settings.json` has no `selectedAuthType` and no API-key env vars
+are set anywhere in the environment, consistent with "never configured /
+no longer eligible" rather than a code bug in the adapter — Gemini's
+real-call test is expected to skip on this machine until that account is
+fixed. `codex exec` initially failed when probed from `$HOME` (not a git
+repo) with "Not inside a trusted directory and --skip-git-repo-check was
+not specified"; run from inside this repo (a trusted git checkout, as
+`tests/test_providers_text.py` does), `codex exec --sandbox read-only`
+succeeds using the account's already-logged-in session — verified with a
+real call returning `"OK"`. Both adapters are still added and registered
+per the project's account-login policy; their real-call tests are written
+to skip (not fail) when the CLI itself reports the session/environment as
+unusable, since that reflects account/trust state, not the adapter's
+correctness.
 
 Tests: `tests/test_providers_text.py`. Model/network-dependent assertions
 are guarded with `unittest.skipUnless(<availability check>)` so CI without
-Ollama/`claude` still passes; when the tool IS present, one real
-integration assertion runs against it (a live `qwen2.5:3b` generate call,
-or a live `claude -p` call).
+Ollama/`claude`/`gemini`/`codex` still passes; when a tool IS present, its
+real-call test attempts a live generate call and additionally skips (rather
+than fails) if that live call raises `ProviderUnavailableError` — an
+account/session/trust-state issue distinct from binary presence.
 
 ## Media adapters (`core/providers_media.py`)
 
