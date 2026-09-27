@@ -1,0 +1,22 @@
+id: production-design
+layer: creator
+scopes: [project, sequence, scene]
+task_scope:
+  short-90s: project
+  explainer: scene
+  longform: sequence
+  film: sequence
+requires: [director]
+consumes: [story_bible, world_bible, continuity_bible]
+produces: [design_pack, asset_brief]
+gates: [CONTINUITY, VISUAL]
+activation:
+  default: optional
+  profiles:
+    short-90s: skip
+    explainer: optional
+    longform: inline
+    film: required
+  rules:
+    - status: required
+      when_any: [characters, persistent_world, period_piece, branded_world]
