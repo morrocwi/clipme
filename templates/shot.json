@@ -1,0 +1,45 @@
+{
+  "id": "SHOT_001",
+  "scene_id": "SCENE_001",
+  "purpose": "",
+  "subject": "",
+  "timing": {
+    "duration_seconds": 3.0
+  },
+  "picture": {
+    "shot_size": "MS",
+    "angle": "eye",
+    "lens_intent": "normal",
+    "camera_position": "",
+    "camera_move": "static",
+    "blocking": "",
+    "focus_strategy": "",
+    "lighting_intent": "",
+    "color_intent": "",
+    "start_state": "",
+    "end_state": "",
+    "render_method": ""
+  },
+  "audio": {
+    "dialogue_ref": "",
+    "voice_ref": "",
+    "ambience_refs": [],
+    "sfx_refs": [],
+    "music_ref": ""
+  },
+  "transition": {
+    "in": "",
+    "out": "",
+    "cut_motivation": ""
+  },
+  "continuity": {
+    "entity_refs": [],
+    "state_before": {},
+    "state_after": {},
+    "screen_direction": "",
+    "eyeline": ""
+  },
+  "fact_refs": [],
+  "asset_refs": [],
+  "status": "draft"
+}
