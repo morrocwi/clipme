@@ -1,0 +1,11 @@
+{
+  "units": [
+    {
+      "id": "PROJECT",
+      "kind": "project",
+      "parent": null,
+      "children": [],
+      "refs": {}
+    }
+  ]
+}
