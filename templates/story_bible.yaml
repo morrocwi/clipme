@@ -1,0 +1,23 @@
+project_id: PROJECT
+premise: ""
+core_question: ""
+theme: ""
+viewer_promise: ""
+genre: ""
+tone: ""
+ending_promise: ""
+
+structure:
+  form: ""
+  acts_or_chapters: []
+
+characters: []
+world_rules: []
+motifs: []
+setup_payoff: []
+
+visual_bible_ref: bibles/visual_bible.yaml
+sound_bible_ref: bibles/sound_bible.yaml
+continuity_bible_ref: bibles/continuity_bible.yaml
+
+status: draft
