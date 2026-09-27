@@ -1,0 +1,21 @@
+project_id: PROJECT
+version: 1
+
+entities:
+  characters: {}
+  locations: {}
+  props: {}
+  wardrobe: {}
+  graphics: {}
+  motifs: {}
+
+global_state:
+  date_time: null
+  weather: null
+  screen_direction_rules: []
+  terminology: {}
+
+scene_state: {}
+sequence_state: {}
+
+unresolved: []
