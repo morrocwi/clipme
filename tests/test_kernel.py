@@ -69,6 +69,15 @@ class KernelTests(unittest.TestCase):
         self.assertNotIn("performance",active)
         self.assertLessEqual(len(plan["tasks"]),12)
 
+    def test_bootstrap_defers_downstream_until_units_exist(self):
+        graph=UnitGraph.from_dict({"units":[{"id":"P","kind":"project","parent":None,"children":[]}]})
+        plan=self.planner.plan(self.project("short-90s",infographic=True,narration=True),graph)
+        skills={t["skill_id"] for t in plan["tasks"]}
+        self.assertIn("producer",skills)
+        self.assertIn("story",skills)
+        self.assertNotIn("editor",skills)
+        self.assertNotIn("qc",skills)
+
     def test_optional_not_scheduled(self):
         project=self.project("short-90s")
         plan=self.planner.plan(project,self.short_graph())
