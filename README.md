@@ -227,7 +227,13 @@ python clipme.py init work/my-video \
   --duration 60
 
 python clipme.py validate work/my-video
+python clipme.py plan work/my-video
+python clipme.py next work/my-video
 ```
+
+The planner is adaptive: only `required` and `inline` skills are scheduled. Optional skills stay available without creating tasks. As Story/Director work expands `manifests/unit_graph.json`, run `plan` again; matching task state is preserved.
+
+See `docs/orchestration.md` for the unit graph, skill activation, task DAG and re-plan model.
 
 When rendered sequence masters exist:
 
