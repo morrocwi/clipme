@@ -1,0 +1,16 @@
+# Optional local providers for clipme (TTS / STT / browser render).
+# NOT installed by CI (.github/workflows/ci.yml) and NOT part of the core
+# requirements.txt: these are heavier and/or slower to install (faster-whisper
+# pulls ctranslate2/numpy/onnx-adjacent deps, playwright downloads a Chromium
+# browser binary at install time) and are free/no-sudo but optional runtime
+# providers, not required for clipme.py's core planning/assembly commands.
+#
+# Install with: scripts/bootstrap.sh (installs this file automatically,
+# best-effort / non-fatal) or manually:
+#   .venv/bin/pip install -r requirements-providers.txt
+#   .venv/bin/playwright install chromium   # downloads Chromium, no sudo
+
+edge-tts>=6.1          # free MS Edge cloud TTS (needs internet)
+piper-tts>=1.2          # free offline neural TTS (needs a voice model download)
+faster-whisper>=1.0     # free offline STT (CPU int8 supported)
+playwright>=1.40        # free headless-browser rendering (chromium via `playwright install chromium`)
