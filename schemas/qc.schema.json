@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipme.local/schemas/qc.schema.json",
+  "title": "clipme QC report",
+  "type": "object",
+  "required": ["scope","status","checks"],
+  "properties": {
+    "scope":{"type":"string"},
+    "status":{"enum":["PASS","FAIL"]},
+    "checks":{
+      "type":"array",
+      "items":{
+        "type":"object",
+        "required":["gate","status"],
+        "properties":{
+          "gate":{"enum":["FACT","STORY","DIRECTION","CONTINUITY","READABILITY","AUDIO","VISUAL","RIGHTS","TECH"]},
+          "status":{"enum":["PASS","FAIL","WARN","NA"]},
+          "severity":{"enum":["blocking","major","minor","info"]},
+          "unit_ref":{"type":"string"},
+          "start_seconds":{"type":"number","minimum":0},
+          "end_seconds":{"type":"number","minimum":0},
+          "root_cause":{"type":"string"},
+          "repair":{"type":"string"},
+          "rerender_scope":{"type":"string"}
+        },
+        "additionalProperties":true
+      }
+    }
+  },
+  "additionalProperties":true
+}
