@@ -1,0 +1,21 @@
+id: SCENE_001
+sequence_id: SEQ_001
+title: ""
+slugline: ""
+objective: ""
+viewer_question: ""
+point_of_view: ""
+performance_intent: ""
+spatial_strategy: ""
+coverage_strategy: ""
+visual_motif: ""
+sound_strategy: ""
+entry_state: {}
+exit_state: {}
+beats:
+  - BEAT_001
+shot_refs: []
+continuity_refs: []
+fact_refs: []
+target_seconds: 10
+status: draft
