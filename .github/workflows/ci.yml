@@ -1,0 +1,36 @@
+name: clipme-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.txt
+      - name: Python syntax
+        run: python -m py_compile clipme.py
+      - name: Init and validate short
+        run: |
+          python clipme.py init /tmp/clipme-short --profile short-90s --title "CI Short" --duration 60
+          python clipme.py validate /tmp/clipme-short
+      - name: Init and validate explainer
+        run: |
+          python clipme.py init /tmp/clipme-explainer --profile explainer --title "CI Explainer" --duration 180
+          python clipme.py validate /tmp/clipme-explainer
+      - name: Init and validate longform
+        run: |
+          python clipme.py init /tmp/clipme-long --profile longform --title "CI Long" --duration 1800
+          python clipme.py validate /tmp/clipme-long
+      - name: Init and validate film
+        run: |
+          python clipme.py init /tmp/clipme-film --profile film --title "CI Film" --duration 7200
+          python clipme.py validate /tmp/clipme-film
