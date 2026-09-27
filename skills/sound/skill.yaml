@@ -1,0 +1,23 @@
+id: sound
+layer: creator
+scopes: [project, scene, sequence, master]
+task_scope:
+  short-90s: project
+  explainer: scene
+  longform: [sequence, master]
+  film: [sequence, master]
+requires: [director]
+after_if_active: [performance, storyboard]
+consumes: [script, director_plan, timeline]
+produces: [voice_assets, sound_plan, mix]
+gates: [AUDIO]
+activation:
+  default: optional
+  profiles:
+    short-90s: optional
+    explainer: required
+    longform: required
+    film: required
+  rules:
+    - status: required
+      when_any: [narration, dialogue, music, sfx, audio]
