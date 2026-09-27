@@ -1,0 +1,10 @@
+{
+  "project_id": "PROJECT",
+  "segments": [
+    {
+      "id": "SEQ_001",
+      "path": "renders/sequences/SEQ_001.mp4"
+    }
+  ],
+  "output": "masters/master.mp4"
+}
