@@ -1,0 +1,17 @@
+id: story
+layer: creator
+scopes: [project]
+task_scope:
+  default: project
+requires: [producer]
+after_if_active: [research]
+consumes: [brief, fact_ledger]
+produces: [story_bible, unit_graph, script]
+gates: [STORY]
+activation:
+  default: required
+  profiles:
+    short-90s: inline
+    explainer: required
+    longform: required
+    film: required
