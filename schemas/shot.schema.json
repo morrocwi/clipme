@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://clipme.local/schemas/shot.schema.json",
+  "title": "clipme shot",
+  "type": "object",
+  "required": ["id","scene_id","purpose","timing","picture","audio","continuity"],
+  "properties": {
+    "id":{"type":"string"},
+    "scene_id":{"type":"string"},
+    "purpose":{"type":"string","minLength":1},
+    "subject":{"type":"string"},
+    "timing":{
+      "type":"object",
+      "required":["duration_seconds"],
+      "properties":{
+        "duration_seconds":{"type":"number","exclusiveMinimum":0},
+        "start_frame":{"type":"integer","minimum":0},
+        "end_frame":{"type":"integer","minimum":0}
+      }
+    },
+    "picture":{
+      "type":"object",
+      "required":["shot_size","angle","camera_move"],
+      "properties":{
+        "shot_size":{"type":"string"},
+        "angle":{"type":"string"},
+        "lens_intent":{"type":"string"},
+        "camera_position":{"type":"string"},
+        "camera_move":{"type":"string"},
+        "blocking":{"type":"string"},
+        "focus_strategy":{"type":"string"},
+        "lighting_intent":{"type":"string"},
+        "color_intent":{"type":"string"},
+        "start_state":{"type":"string"},
+        "end_state":{"type":"string"},
+        "render_method":{"type":"string"}
+      },
+      "additionalProperties":true
+    },
+    "audio":{
+      "type":"object",
+      "properties":{
+        "dialogue_ref":{"type":"string"},
+        "voice_ref":{"type":"string"},
+        "ambience_refs":{"type":"array","items":{"type":"string"}},
+        "sfx_refs":{"type":"array","items":{"type":"string"}},
+        "music_ref":{"type":"string"}
+      },
+      "additionalProperties":true
+    },
+    "transition":{
+      "type":"object",
+      "properties":{
+        "in":{"type":"string"},
+        "out":{"type":"string"},
+        "cut_motivation":{"type":"string"}
+      }
+    },
+    "continuity":{
+      "type":"object",
+      "properties":{
+        "entity_refs":{"type":"array","items":{"type":"string"}},
+        "state_before":{"type":"object","additionalProperties":true},
+        "state_after":{"type":"object","additionalProperties":true},
+        "screen_direction":{"type":"string"},
+        "eyeline":{"type":"string"}
+      },
+      "additionalProperties":true
+    },
+    "fact_refs":{"type":"array","items":{"type":"string"}},
+    "asset_refs":{"type":"array","items":{"type":"string"}},
+    "status":{"enum":["draft","review","locked","rendered","passed"]}
+  },
+  "additionalProperties":true
+}
