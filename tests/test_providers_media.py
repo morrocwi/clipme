@@ -12,6 +12,7 @@ from core.providers_media import (
     BrowserRenderAdapter,
     EdgeTTSAdapter,
     FasterWhisperSTTAdapter,
+    MMSTTSAdapter,
     PiperTTSAdapter,
     ProviderUnavailableError,
     register_defaults,
@@ -30,10 +31,19 @@ HAS_EDGE_TTS = _has_module("edge_tts")
 HAS_PIPER = _has_module("piper")
 HAS_FASTER_WHISPER = _has_module("faster_whisper")
 HAS_PLAYWRIGHT = _has_module("playwright")
+HAS_TRANSFORMERS = _has_module("transformers")
+HAS_TORCH = _has_module("torch")
+HAS_SOUNDFILE = _has_module("soundfile")
+HAS_MMS_TTS = HAS_TRANSFORMERS and HAS_TORCH and HAS_SOUNDFILE
 HAS_FFPROBE = bool(shutil.which("ffprobe"))
 
 PIPER_MODEL = PiperTTSAdapter.DEFAULT_MODELS_DIR / "en_US-lessac-medium.onnx"
 HAS_PIPER_MODEL = HAS_PIPER and PIPER_MODEL.exists()
+
+PIPER_TH_MODEL = PiperTTSAdapter.DEFAULT_MODELS_DIR / "th_TH-mms_female-medium.onnx"
+HAS_PIPER_TH_MODEL = HAS_PIPER and PIPER_TH_MODEL.exists()
+
+THAI_TEST_SENTENCE = "สวัสดีครับ นี่คือการทดสอบเสียงภาษาไทยของระบบคลิปมี"
 
 
 class RegisterDefaultsTests(unittest.TestCase):
@@ -193,6 +203,57 @@ class BrowserRenderAdapterTests(unittest.TestCase):
         self.assertTrue(result["executed"])
         self.assertTrue(out_png.exists())
         self.assertGreater(out_png.stat().st_size, 0)
+
+
+class PiperTTSAdapterThaiTests(unittest.TestCase):
+    @unittest.skipUnless(
+        HAS_PIPER_TH_MODEL,
+        "piper-tts + th_TH-mms_female-medium model not installed under models/piper/",
+    )
+    def test_generate_voice_thai_produces_real_wav(self):
+        tmp = Path(tempfile.mkdtemp(prefix="clipme-piper-th-"))
+        out_path = tmp / "voice_th.wav"
+        adapter = PiperTTSAdapter()
+        result = adapter.generate_voice(
+            THAI_TEST_SENTENCE,
+            out_path,
+            voice="th_TH-mms_female-medium",
+        )
+        self.assertTrue(result["executed"])
+        self.assertEqual(result["provider"], "piper_tts")
+        self.assertTrue(out_path.exists())
+        self.assertGreater(out_path.stat().st_size, 0)
+        if HAS_FFPROBE:
+            self.assertIsNotNone(result["duration_s"])
+            self.assertGreater(result["duration_s"], 0.5)
+
+
+class MMSTTSAdapterTests(unittest.TestCase):
+    def test_raises_clean_error_when_deps_missing(self):
+        if HAS_MMS_TTS:
+            self.skipTest("transformers/torch/soundfile installed; missing-deps path not reachable here")
+        adapter = MMSTTSAdapter()
+        with self.assertRaises(ProviderUnavailableError):
+            adapter.generate_voice(THAI_TEST_SENTENCE, "/tmp/should-not-exist.wav")
+
+    @unittest.skipUnless(
+        HAS_MMS_TTS,
+        "transformers, torch and soundfile all required for facebook/mms-tts-tha",
+    )
+    def test_generate_voice_produces_real_wav(self):
+        tmp = Path(tempfile.mkdtemp(prefix="clipme-mms-tts-"))
+        out_path = tmp / "voice_mms.wav"
+        adapter = MMSTTSAdapter()
+        result = adapter.generate_voice(THAI_TEST_SENTENCE, out_path)
+        self.assertTrue(result["executed"])
+        self.assertEqual(result["provider"], "mms_tts")
+        self.assertEqual(result["model"], "facebook/mms-tts-tha")
+        self.assertEqual(result["license"], "CC-BY-NC-4.0")
+        self.assertTrue(out_path.exists())
+        self.assertGreater(out_path.stat().st_size, 0)
+        if HAS_FFPROBE:
+            self.assertIsNotNone(result["duration_s"])
+            self.assertGreater(result["duration_s"], 0.5)
 
 
 if __name__ == "__main__":

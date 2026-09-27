@@ -176,6 +176,96 @@ class PiperTTSAdapter:
 
 
 # --------------------------------------------------------------------------- #
+# TTS: facebook/mms-tts-tha (offline VITS model via transformers, CC-BY-NC-4.0)
+# --------------------------------------------------------------------------- #
+
+class MMSTTSAdapter:
+    """Implements "generate_voice" for Thai via Meta's MMS-TTS VITS model
+    (`facebook/mms-tts-tha`), loaded through `transformers` + `torch` (CPU).
+
+    Heavier than `PiperTTSAdapter` (needs `transformers`/`torch`/`soundfile`,
+    ~2GB combined install; measured ~745MB peak RSS and ~18s wall time for a
+    short sentence on this machine) but needs no local ONNX voice file — the
+    model is downloaded once from the Hugging Face Hub and cached by
+    `transformers`.
+
+    License: CC-BY-NC-4.0 (non-commercial) — inherited from the base
+    `facebook/mms-tts` release. Do not use for commercial clipme output
+    without separately clearing that with the founder.
+
+    The model instance is loaded lazily on first `generate_voice` call and
+    cached on the adapter instance, matching `FasterWhisperSTTAdapter`'s
+    one-model-per-instance discipline (never load two heavy models at once).
+    """
+
+    MODEL_ID = "facebook/mms-tts-tha"
+    LICENSE = "CC-BY-NC-4.0"
+
+    def __init__(self) -> None:
+        self._model = None
+        self._tokenizer = None
+
+    def _check_available(self) -> None:
+        import importlib.util
+
+        if importlib.util.find_spec("transformers") is None or importlib.util.find_spec("torch") is None:
+            raise ProviderUnavailableError(
+                "transformers and/or torch are not installed "
+                "(pip install transformers torch soundfile — see requirements-providers.txt)"
+            )
+
+    def _get_model(self):
+        if self._model is not None and self._tokenizer is not None:
+            return self._model, self._tokenizer
+        try:
+            from transformers import AutoTokenizer, VitsModel
+        except ImportError as exc:
+            raise ProviderUnavailableError(f"transformers import failed: {exc}") from exc
+
+        try:
+            self._model = VitsModel.from_pretrained(self.MODEL_ID)
+            self._tokenizer = AutoTokenizer.from_pretrained(self.MODEL_ID)
+        except Exception as exc:
+            raise ProviderUnavailableError(
+                f"failed to load {self.MODEL_ID!r}: {exc}"
+            ) from exc
+        return self._model, self._tokenizer
+
+    def generate_voice(
+        self,
+        text: str,
+        out_path: str | Path,
+        **kw: Any,
+    ) -> dict[str, Any]:
+        self._check_available()
+        model, tokenizer = self._get_model()
+
+        import torch
+        import soundfile as sf
+
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            inputs = tokenizer(text, return_tensors="pt")
+            with torch.no_grad():
+                waveform = model(**inputs).waveform
+            wav = waveform.squeeze().numpy()
+            sf.write(str(out_path), wav, model.config.sampling_rate)
+        except Exception as exc:
+            raise ProviderUnavailableError(f"mms-tts synthesis failed: {exc}") from exc
+
+        return {
+            "executed": True,
+            "provider": "mms_tts",
+            "model": self.MODEL_ID,
+            "license": self.LICENSE,
+            "path": str(out_path),
+            "duration_s": _ffprobe_duration(out_path),
+        }
+
+
+# --------------------------------------------------------------------------- #
 # STT: faster-whisper (free, offline, CPU int8 supported)
 # --------------------------------------------------------------------------- #
 
@@ -318,16 +408,23 @@ def register_defaults(registry: Any) -> None:
     - "render_html" -> BrowserRenderAdapter
 
     Also registers each `generate_voice` backend explicitly under its own
-    capability name (`generate_voice:edge_tts`, `generate_voice:piper_tts`),
-    mirroring `providers_text.py`'s `generate_text:<backend>` convention, so
-    a caller can pick Piper's fully-offline path deliberately instead of
-    importing `PiperTTSAdapter` directly.
+    capability name (`generate_voice:edge_tts`, `generate_voice:piper_tts`,
+    `generate_voice:piper_th`, `generate_voice:mms_tts`), mirroring
+    `providers_text.py`'s `generate_text:<backend>` convention, so a caller
+    can pick Piper's fully-offline path (or the Thai-specific voice/model)
+    deliberately instead of importing the adapter directly. `edge_tts`
+    stays the default "generate_voice" — it is not overridden by any of
+    the offline Thai backends.
     """
     edge_tts = EdgeTTSAdapter()
     piper_tts = PiperTTSAdapter()
+    piper_th = PiperTTSAdapter()
+    mms_tts = MMSTTSAdapter()
 
     registry.register("generate_voice", edge_tts)
     registry.register("generate_voice:edge_tts", edge_tts)
     registry.register("generate_voice:piper_tts", piper_tts)
+    registry.register("generate_voice:piper_th", piper_th)
+    registry.register("generate_voice:mms_tts", mms_tts)
     registry.register("transcribe", FasterWhisperSTTAdapter())
     registry.register("render_html", BrowserRenderAdapter())
