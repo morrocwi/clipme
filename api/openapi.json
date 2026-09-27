@@ -1,0 +1,275 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "clipme API",
+    "version": "0.1.0",
+    "description": "Minimal stdlib-only HTTP API over core/service.py. Local-dev only: no auth, no multi-tenancy, no path-traversal hardening on {project} — see api/server.py's module docstring for the full limitation statement."
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:8420" }
+  ],
+  "paths": {
+    "/projects": {
+      "post": {
+        "summary": "Create (scaffold) a new clipme project workspace",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["directory", "profile"],
+                "properties": {
+                  "directory": { "type": "string", "description": "Filesystem path for the new project directory" },
+                  "profile": { "type": "string", "example": "short-90s" },
+                  "title": { "type": "string" },
+                  "id": { "type": "string" },
+                  "language": { "type": "string", "default": "th" },
+                  "duration": { "type": "number", "default": 60.0 },
+                  "width": { "type": "integer", "default": 1920 },
+                  "height": { "type": "integer", "default": 1080 },
+                  "fps": { "type": "number", "default": 30.0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dest": { "type": "string" },
+                    "project_id": { "type": "string" },
+                    "profile": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/projects/{project}/validate": {
+      "post": {
+        "summary": "Run the full schema + profile + graph + reference + task-DAG validation chain",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "responses": {
+          "200": {
+            "description": "Validation passed",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "passed": { "type": "boolean" }, "message": { "type": "string" } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/projects/{project}/plan": {
+      "post": {
+        "summary": "Build adaptive skill-activation + executable task DAG",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "responses": {
+          "200": {
+            "description": "Plan built",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "task_count": { "type": "integer" },
+                    "profile": { "type": "string" },
+                    "activation_counts": { "type": "object", "additionalProperties": { "type": "integer" } },
+                    "plan_path": { "type": "string" },
+                    "state_path": { "type": "string" },
+                    "tasks": { "type": "array", "items": { "type": "object" } },
+                    "activation": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/projects/{project}/replan": {
+      "post": {
+        "summary": "Re-run planning, carrying over prior TaskState via signature matching",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "responses": {
+          "200": { "description": "Identical response shape to POST /projects/{project}/plan" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" }
+        }
+      }
+    },
+    "/projects/{project}/tasks/ready": {
+      "get": {
+        "summary": "List tasks whose dependencies are satisfied",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "responses": {
+          "200": {
+            "description": "Ready tasks",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "ready": { "type": "array", "items": { "type": "object" } }, "complete": { "type": "boolean" } } } } }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task_id}/complete": {
+      "post": {
+        "summary": "Record a task completed by an external AI/tool runner",
+        "parameters": [ { "$ref": "#/components/parameters/project" }, { "$ref": "#/components/parameters/task_id" } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" }, "artifacts": { "type": "array", "items": { "type": "string" } } } } } }
+        },
+        "responses": {
+          "200": { "description": "Completed", "content": { "application/json": { "schema": { "type": "object", "properties": { "task_id": { "type": "string" }, "ready_count": { "type": "integer" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/IllegalTransition" }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task_id}/fail": {
+      "post": {
+        "summary": "Record a task as failed",
+        "parameters": [ { "$ref": "#/components/parameters/project" }, { "$ref": "#/components/parameters/task_id" } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "message": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Failed", "content": { "application/json": { "schema": { "type": "object", "properties": { "task_id": { "type": "string" }, "message": { "type": "string" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/IllegalTransition" }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task_id}/review": {
+      "post": {
+        "summary": "Approve a task in REVIEW state, passing it to LOCKED/PASSED (maps to service.review_task)",
+        "parameters": [ { "$ref": "#/components/parameters/project" }, { "$ref": "#/components/parameters/task_id" } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "notes": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Approved", "content": { "application/json": { "schema": { "type": "object", "properties": { "task_id": { "type": "string" }, "ready_count": { "type": "integer" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/IllegalTransition" }
+        }
+      }
+    },
+    "/projects/{project}/tasks/{task_id}/reject": {
+      "post": {
+        "summary": "Reject a task in REVIEW state, sending it to FAILED (maps to service.reject_task)",
+        "parameters": [ { "$ref": "#/components/parameters/project" }, { "$ref": "#/components/parameters/task_id" } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "reason": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Rejected", "content": { "application/json": { "schema": { "type": "object", "properties": { "task_id": { "type": "string" }, "reason": { "type": "string" } } } } } },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/IllegalTransition" }
+        }
+      }
+    },
+    "/projects/{project}/assemble": {
+      "post": {
+        "summary": "Concatenate ordered rendered segments into one master via ffmpeg",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "manifest": { "type": "string", "default": "manifests/render_manifest.json" }, "output": { "type": "string" } } } } }
+        },
+        "responses": {
+          "200": { "description": "Assembled", "content": { "application/json": { "schema": { "type": "object", "properties": { "output": { "type": "string" } } } } } },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/BinaryNotFound" }
+        }
+      }
+    },
+    "/projects/{project}/release": {
+      "get": {
+        "summary": "Evaluate the release gate (required QC gates) for the master",
+        "parameters": [ { "$ref": "#/components/parameters/project" } ],
+        "responses": {
+          "200": { "description": "Releasable", "content": { "application/json": { "schema": { "type": "object", "properties": { "passed": { "type": "boolean" } } } } } },
+          "422": {
+            "description": "Master is not releasable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" },
+                    "missing": { "type": "array", "items": { "type": "string" } },
+                    "unpassed": { "type": "array", "items": { "type": "string" } },
+                    "failing": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "project": {
+        "name": "project",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "description": "A clipme project directory path on the server's filesystem, percent-encoded into ONE URL path segment (encode any '/' inside the path as %2F). No auth or sandboxing is applied to this value — see api/server.py's module docstring."
+      },
+      "task_id": {
+        "name": "task_id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Project, profile, plan or task not found",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ValidationError": {
+        "description": "One or more validation failures",
+        "content": {
+          "application/json": {
+            "schema": {
+              "allOf": [
+                { "$ref": "#/components/schemas/Error" },
+                { "type": "object", "properties": { "failures": { "type": "array", "items": { "type": "string" } } } }
+              ]
+            }
+          }
+        }
+      },
+      "IllegalTransition": {
+        "description": "The orchestrator's state machine rejected the requested transition",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "BinaryNotFound": {
+        "description": "A required external binary (ffmpeg/ffprobe) is not on PATH",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "description": "The ClipmeError subclass name" },
+          "message": { "type": "string" }
+        },
+        "required": ["error", "message"]
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+# Reference project.yaml shape for this example — documentation only.
+#
+# `run.py` does NOT read this file. It calls core.service.create_project(),
+# which generates a fresh project.yaml with this exact shape at runtime
+# (under work/project/project.yaml, gitignored). This file is committed so a
+# reader can see the config without running the pipeline first.
+id: REFERENCE_INFOGRAPHIC_01
+title: Reference Infographic
+profile: short-90s
+language: en
+audience: ""
+intent:
+  promise: ""
+  core_question: ""
+  desired_viewer_change: ""
+  tone: ""
+  genre: ""
+duration:
+  target_seconds: 45.0
+delivery:
+  width: 640
+  height: 360
+  fps: 24.0
+  video_codec: h264
+  audio_codec: aac
+  audio_sample_rate: 48000
+  channels: 2
+features: {}
+skill_overrides: {}
+constraints: {}
+source_refs: []
+bible_refs: []

@@ -4,8 +4,14 @@ __pycache__/
 .venv/
 .env
 .env.*
+bin/
+.envrc
+scripts/env.sh
 work/
 renders/
 masters/
 tmp/
 .cache/
+examples/**/*.mp4
+examples/**/output/
+examples/**/out/

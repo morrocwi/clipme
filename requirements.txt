@@ -1,2 +1,9 @@
 PyYAML>=6.0
 jsonschema>=4.20
+
+# Bootstrap-only tooling (see scripts/bootstrap.sh): these provide static
+# ffmpeg/ffprobe binaries for this no-sudo machine. Neither is imported by
+# core/*.py or clipme.py — clipme always invokes ffmpeg/ffprobe as external
+# subprocess binaries resolved via PATH, never as a Python API.
+imageio-ffmpeg>=0.5  # provides a static ffmpeg binary
+static-ffmpeg>=2.7   # provides static ffmpeg + ffprobe binaries

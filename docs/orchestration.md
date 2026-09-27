@@ -161,6 +161,13 @@ An external AI/provider runner completes the ready task and records its artifact
 python clipme.py complete work/demo producer@DEMO --artifact bibles/brief.yaml
 \`\`\`
 
+\`complete\`/\`fail\` on an unknown task id print \`ERROR: unknown task: <id>\`
+to stderr and exit \`2\` (via \`core/service.py\`'s \`TaskNotFoundError\`, caught
+at the CLI boundary). This is an intentional fix: prior to the service-layer
+refactor this path raised an unhandled \`KeyError\` traceback and exited \`1\`.
+Any caller (script, CI, or the HTTP API's own client) matching on the old
+traceback text or exit code \`1\` for this specific case should be updated.
+
 Inspect state:
 
 \`\`\`bash
