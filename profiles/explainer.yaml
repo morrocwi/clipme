@@ -1,0 +1,23 @@
+id: explainer
+duration:
+  min_seconds: 60
+  max_seconds: 600
+planning:
+  primary_unit: scene
+  allowed_hierarchy: [project, sequence, scene, beat, shot]
+  progressive_lock: moderate
+story:
+  core_question_required: true
+  mechanism_or_argument_required: true
+  recommended_sequences: [1, 4]
+  recap_policy: minimal
+direction:
+  visual_function_required: true
+  transition_preference: causal_or_conceptual
+  typography_readability_priority: high
+render:
+  unit: scene
+  intermediate_masters: optional
+qc:
+  local_passes: [scene, master]
+  independent_review_recommended: true
